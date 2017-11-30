@@ -21,7 +21,6 @@ def plot_log(filename, show=True):
                 values.append(float(value))
 
         values = np.reshape(values, newshape=(-1, len(keys)))
-        values[:,0] += 1
 
     fig = plt.figure(figsize=(4,6))
     fig.subplots_adjust(top=0.95, bottom=0.05, right=0.95)
@@ -30,9 +29,11 @@ def plot_log(filename, show=True):
     for i, key in enumerate(keys):
         if key == 'epoch':
             epoch_axis = i
+            values[:, epoch_axis] += 1
             break
     for i, key in enumerate(keys):
         if key.find('loss') >= 0:  # loss
+            print(values[:, i])
             plt.plot(values[:, epoch_axis], values[:, i], label=key)
     plt.legend()
     plt.title('Training loss')
@@ -42,7 +43,8 @@ def plot_log(filename, show=True):
         if key.find('acc') >= 0:  # acc
             plt.plot(values[:, epoch_axis], values[:, i], label=key)
     plt.legend()
-    plt.title('Training and validation accuracy')
+    plt.grid()
+    plt.title('Accuracy')
 
     # fig.savefig('result/log.png')
     if show:
