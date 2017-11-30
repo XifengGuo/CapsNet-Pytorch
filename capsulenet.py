@@ -147,7 +147,7 @@ def train(model, train_loader, test_loader, args):
 
     t0 = time()
     optimizer = Adam(model.parameters(), lr=args.lr)
-    lr_decay = lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
+    lr_decay = lr_scheduler.ExponentialLR(optimizer, gamma=args.lr_decay)
     best_val_acc = 0.
     for epoch in range(args.epochs):
         model.train()  # set to training mode
@@ -216,6 +216,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Capsule Network on MNIST.")
     parser.add_argument('--epochs', default=50, type=int)
     parser.add_argument('--batch_size', default=100, type=int)
+    parser.add_argument('--lr', default=0.001, type=float,
+                        help="Initial learning rate")
+    parser.add_argument('--lr_decay', default=0.9, type=float,
+                        help="The value multiplied by lr at each epoch. Set a larger value for larger epochs")
     parser.add_argument('--lam_recon', default=0.0005 * 784, type=float,
                         help="The coefficient for the loss of decoder")
     parser.add_argument('-r', '--routings', default=3, type=int,
@@ -231,8 +235,6 @@ if __name__ == "__main__":
                         help="Test the trained model on testing dataset")
     parser.add_argument('-w', '--weights', default=None,
                         help="The path of the saved weights. Should be specified when testing")
-    parser.add_argument('--lr', default=0.001, type=float,
-                        help="Initial learning rate")
     args = parser.parse_args()
     print(args)
     if not os.path.exists(args.save_dir):
