@@ -41,10 +41,10 @@ class CapsuleNet(nn.Module):
         self.conv1 = nn.Conv2d(input_size[0], 256, kernel_size=9, stride=1, padding=0)
 
         # Layer 2: Conv2D layer with `squash` activation, then reshape to [None, num_caps, dim_caps]
-        self.primarycaps = PrimaryCapsule(256, 256, 8, kernel_size=9, stride=2, padding=0)
+        self.primarycaps = PrimaryCapsule(256, 64*8, 8, kernel_size=9, stride=2, padding=0)
 
         # Layer 3: Capsule layer. Routing algorithm works here.
-        self.digitcaps = DenseCapsule(in_num_caps=32*6*6, in_dim_caps=8,
+        self.digitcaps = DenseCapsule(in_num_caps=64*4*4, in_dim_caps=8,
                                       out_num_caps=classes, out_dim_caps=16, routings=routings)
 
         # Decoder network.
@@ -208,27 +208,43 @@ def load_mnist(path='./data', download=False, batch_size=100, shift_pixels=2):
     return train_loader, test_loader
 
 
+def load_cifar10(path='./data', download=False, batch_size=100):
+    kwargs = {'num_workers': 1, 'pin_memory': True}
+
+    train_loader = torch.utils.data.DataLoader(
+        datasets.CIFAR10(path, train=True, download=download,
+                       transform=transforms.Compose([transforms.RandomCrop(size=24),
+                                                     transforms.ToTensor()])),
+        batch_size=batch_size, shuffle=True, **kwargs)
+    test_loader = torch.utils.data.DataLoader(
+        datasets.CIFAR10(path, train=False, download=download,
+                       transform=transforms.Compose([transforms.CenterCrop(size=24),
+                                                     transforms.ToTensor()])),
+        batch_size=batch_size, shuffle=True, **kwargs)
+
+    return train_loader, test_loader
+
 if __name__ == "__main__":
     import argparse
     import os
 
     # setting the hyper parameters
     parser = argparse.ArgumentParser(description="Capsule Network on MNIST.")
-    parser.add_argument('--epochs', default=50, type=int)
+    parser.add_argument('--epochs', default=500, type=int)
     parser.add_argument('--batch_size', default=100, type=int)
     parser.add_argument('--lr', default=0.001, type=float,
                         help="Initial learning rate")
-    parser.add_argument('--lr_decay', default=0.9, type=float,
+    parser.add_argument('--lr_decay', default=1.0, type=float,
                         help="The value multiplied by lr at each epoch. Set a larger value for larger epochs")
-    parser.add_argument('--lam_recon', default=0.0005 * 784, type=float,
+    parser.add_argument('--lam_recon', default=0.0005 * 24*24*3, type=float,
                         help="The coefficient for the loss of decoder")
     parser.add_argument('-r', '--routings', default=3, type=int,
                         help="Number of iterations used in routing algorithm. should > 0")  # num_routing should > 0
-    parser.add_argument('--shift_pixels', default=2, type=int,
+    parser.add_argument('--shift_pixels', default=0, type=int,
                         help="Number of pixels to shift at most in each direction.")
-    parser.add_argument('--data_dir', default='./data',
+    parser.add_argument('--data_dir', default='/home/xifeng/Workspace/datasets/cifar10/pytorch',
                         help="Directory of data. If no data, use \'--download\' flag to download it")
-    parser.add_argument('--download', action='store_true',
+    parser.add_argument('-d', '--download', action='store_true',
                         help="Download the required data.")
     parser.add_argument('--save_dir', default='./result')
     parser.add_argument('-t', '--testing', action='store_true',
@@ -241,10 +257,10 @@ if __name__ == "__main__":
         os.makedirs(args.save_dir)
 
     # load data
-    train_loader, test_loader = load_mnist(args.data_dir, download=False, batch_size=args.batch_size)
+    train_loader, test_loader = load_cifar10(args.data_dir, download=args.download, batch_size=args.batch_size)
 
     # define model
-    model = CapsuleNet(input_size=[1, 28, 28], classes=10, routings=3)
+    model = CapsuleNet(input_size=[3, 24, 24], classes=10, routings=3)
     model.cuda()
     print(model)
 
